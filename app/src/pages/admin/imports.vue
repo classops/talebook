@@ -21,6 +21,7 @@
         <v-data-table
             dense
             class="elevation-1 text-body-2"
+            ref="dataTable"
             show-select
             v-model="selected"
             item-key="hash"
@@ -31,9 +32,8 @@
             :server-items-length="total"
             :loading="loading"
             :page.sync="page"
-            :items-per-page="100"
-            hide-default-footer
-            :footer-props="{ 'items-per-page-options': [10, 50, 100, 1000] }"
+            :items-per-page.sync="perPage"
+            :footer-props="{ 'items-per-page-options': [20, 50, 100, 1000] }"
         >
             <template v-slot:item.status="{ item }">
                 <v-chip small v-if="item.status == 'ready'" class="success">可导入</v-chip>
@@ -47,32 +47,38 @@
                 <a v-else target="_blank" :href="`/book/${item.book_id}`">{{ item.title }}</a> <br />
                 作者：{{ item.author }}
             </template>
+            <template v-slot:footer >
+                <div style="display: flex; flex-flow: row; margin-left: 8px; margin-right: 8px" >
+                    
+                        <v-select
+                            style="margin-top: 24px; margin-left: 8px; width: 72px; flex: 0 1 0"
+                            :value="perPage"
+                            :items="[20, 50, 100, 1000]"
+                            density="compact"
+                            variant="solo"
+                            @change="handlePageSelectChange"
+                            ></v-select>
+                        <div style="display: flex; align-items: center; justify-content: center; flex: 1 1 0" >
+                            <v-pagination 
+                                v-model="page" 
+                                :length="total" 
+                                total-visible="12" 
+                                style="margin: 0"
+                                circle ></v-pagination>
+                        </div>
+                        <!-- length：页码的总长度；total-visible：显示的最大可见分页数 -->
+                    <!-- 加了下面的部分👇 -->
+                        <div style="display: flex; align-items: center; justify-content: end; padding-right: 12px" >
+                            <div>跳转</div>
+                            <v-text-field solo v-model="whichPage" type="number" 
+                                style="margin-top: 24px; width: 80px; margin-start: 4px; margin-end: 4px"
+                                @keyup.enter="goToPage"></v-text-field>
+                            <div>页</div>
+                            <v-btn small fab style="display: none" @click="goToPage()">GO</v-btn>
+                        </div>
+                </div>
+            </template>
         </v-data-table>
-
-        <v-row >
-            <v-col cols="10">
-                <div style="height: 100%; display: flex; align-items: center; justify-content: center" >
-                    <v-pagination 
-                        v-model="page" 
-                        :length="total" 
-                        total-visible="10" 
-                        style="margin: 0"
-                        circle ></v-pagination>
-                </div>
-                <!-- length：页码的总长度；total-visible：显示的最大可见分页数 -->
-            </v-col>
-            <!-- 加了下面的部分👇 -->
-            <v-col cols="2">
-                <div style="display: flex; align-items: center; justify-content: end; padding-right: 12px" >
-                    <div>跳转</div>
-                    <v-text-field solo v-model="whichPage" :type="number" 
-                        style="margin-top: 24px; width: 80px; margin-start: 4px; margin-end: 4px"
-                        @keyup.enter="goToPage"></v-text-field>
-                    <div>页</div>
-                    <v-btn small fab style="display: none" @click="goToPage()">GO</v-btn>
-                </div>
-            </v-col>
-        </v-row>
             
     </v-card>
 </template>
@@ -84,10 +90,14 @@ export default {
         scan_dir: "/data/books/imports/",
         search: "",
         page: 1,
+        perPage: 100,
         items: [],
         total: 0,
         loading: false,
-        options: {},
+        options: {
+            page: 1,
+            itemsPerPage: 100,
+        },
         headers: [
             { text: "ID", sortable: true, value: "id" },
             { text: "状态", sortable: true, value: "status" },
@@ -120,6 +130,13 @@ export default {
         },
     },
     methods: {
+        handlePageSelectChange(newValue) {
+            console.log(`value: ${newValue}`)
+            console.log(`table: ${this.$refs.dataTable}`)
+            // this.$refs.dataTable.setItemsPerPage(Number(newValue))
+            this.perPage = Number(newValue)
+            this.options.itemsPerPage = Number(newValue)
+        },
         goToPage() {
             console.log(`goToPage: ${this.whichPage}`)
             this.page = Number(this.whichPage)
@@ -142,6 +159,7 @@ export default {
             if (itemsPerPage != undefined) {
                 data.append("num", itemsPerPage);
             }
+            console.log(`data: ${data.toString()}`)
             this.$backend("/admin/scan/list?" + data.toString())
                 .then((rsp) => {
                     if (rsp.err != "ok") {
