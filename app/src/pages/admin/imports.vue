@@ -32,6 +32,7 @@
             :loading="loading"
             :page.sync="page"
             :items-per-page="100"
+            hide-default-footer
             :footer-props="{ 'items-per-page-options': [10, 50, 100, 1000] }"
         >
             <template v-slot:item.status="{ item }">
@@ -47,6 +48,32 @@
                 作者：{{ item.author }}
             </template>
         </v-data-table>
+
+        <v-row >
+            <v-col cols="10">
+                <div style="height: 100%; display: flex; align-items: center; justify-content: center" >
+                    <v-pagination 
+                        v-model="page" 
+                        :length="total" 
+                        total-visible="10" 
+                        style="margin: 0"
+                        circle ></v-pagination>
+                </div>
+                <!-- length：页码的总长度；total-visible：显示的最大可见分页数 -->
+            </v-col>
+            <!-- 加了下面的部分👇 -->
+            <v-col cols="2">
+                <div style="display: flex; align-items: center; justify-content: end; padding-right: 12px" >
+                    <div>跳转</div>
+                    <v-text-field solo v-model="whichPage" :type="number" 
+                        style="margin-top: 24px; width: 80px; margin-start: 4px; margin-end: 4px"
+                        @keyup.enter="goToPage"></v-text-field>
+                    <div>页</div>
+                    <v-btn small fab style="display: none" @click="goToPage()">GO</v-btn>
+                </div>
+            </v-col>
+        </v-row>
+            
     </v-card>
 </template>
 
@@ -73,6 +100,7 @@ export default {
             total: 0,
             status: "finish",
         },
+        whichPage: 1
     }),
     watch: {
         options: {
@@ -84,6 +112,7 @@ export default {
     },
     mounted() {
         this.getDataFromApi();
+        this.total = 100
     },
     computed: {
         pageCount: function () {
@@ -91,7 +120,12 @@ export default {
         },
     },
     methods: {
+        goToPage() {
+            console.log(`goToPage: ${this.whichPage}`)
+            this.page = Number(this.whichPage)
+        },
         getDataFromApi() {
+            console.log(`getDataFromApi`)
             this.loading = true;
             const { sortBy, sortDesc, page, itemsPerPage } = this.options;
 
@@ -116,9 +150,9 @@ export default {
                         alert(rsp.msg);
                         return false;
                     }
-                    this.items = rsp.items;
-                    this.total = rsp.total;
-                    this.scan_dir = rsp.scan_dir;
+                    // this.items = rsp.items;
+                    // this.total = rsp.total;
+                    // this.scan_dir = rsp.scan_dir;
                 })
                 .finally(() => {
                     this.loading = false;
